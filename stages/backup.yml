@@ -1,0 +1,32 @@
+stages:
+  - backup
+
+incremental_backup:
+  stage: backup
+  image: alpine:latest
+  tags:
+    - k8s-runner
+  script:
+    - |
+      ssh -o StrictHostKeyChecking=no pgbackrest@$PGBACKREST_SERVER "
+        date
+        pgbackrest --stanza=$PG_BACKREST_STANZA --type=$TYPE backup
+        if [ $? -eq 0 ]; then echo \"Incremental backup successful\"; else echo \"Incremental backup failed\"; fi
+      "
+  rules:
+    - if: $TYPE == "incr" && $CI_PIPELINE_SOURCE == "schedule"
+
+full_backup:
+  stage: backup
+  image: alpine:latest
+  tags:
+    - k8s-runner
+  script:
+    - | 
+      ssh -o StrictHostKeyChecking=no pgbackrest@$PGBACKREST_SERVER "
+        date
+        pgbackrest --stanza=$PG_BACKREST_STANZA --type=$TYPE backup
+        if [ $? -eq 0 ]; then echo \"Full backup successful\"; else echo \"Full backup failed\"; fi
+      "
+  rules:    
+    - if: $TYPE == "full" && $CI_PIPELINE_SOURCE == "schedule"

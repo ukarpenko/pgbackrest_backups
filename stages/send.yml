@@ -1,0 +1,26 @@
+.send_to_minio: &send_to_minio
+  - | 
+    ssh -o StrictHostKeyChecking=no pgbackrest@$PGBACKREST_SERVER "PG_BACKREST_STANZA=${PG_BACKREST_STANZA} TYPE=${TYPE} TARGET_SERVER=$TARGET_SERVER
+      cd /var/lib/pgbackrest/backup/${PG_BACKREST_STANZA}
+      DATE=`date +%F`
+      FILENAME=${PG_BACKREST_STANZA}--${TYPE}--$DATE
+      LATEST_BACKUP=$(ls -td /var/lib/pgbackrest/backup/${PG_BACKREST_STANZA}/*/ | head -1)
+      BACKUP_NAME=$(basename $LATEST_BACKUP)
+      tar -hcvf ${BACKUP_NAME}.tar ${BACKUP_NAME}
+      mv ${BACKUP_NAME}.tar ${FILENAME}.tar
+      aws --endpoint-url $TARGET_SERVER s3 ls
+      aws --endpoint-url $TARGET_SERVER s3 cp ${FILENAME}.tar s3://backups/${PG_BACKREST_STANZA}/${FILENAME}.tar
+      if [ $? -eq 0 ]; then echo \"Backup sent successfully\"; else echo \"Backup sending failed\"; fi
+    "
+
+stages:
+  - send
+send_backup:
+  stage: send
+  image: alpine:latest
+  tags:
+    - k8s-runner
+  script:
+    - *send_to_minio
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"

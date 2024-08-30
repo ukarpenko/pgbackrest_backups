@@ -1,0 +1,50 @@
+stages:
+  - restore
+
+.restore_before_script: &restore_before_script
+  - eval $(ssh-agent -s)
+  - echo "$KEY" | tr -d '\r' | ssh-add -
+  - echo "$KEY2" | tr -d '\r' | ssh-add -
+  - mkdir -p ~/.ssh
+  - chmod 700 ~/.ssh
+
+.incr_restore: &increment_copy
+  - |
+    ssh -o StrictHostKeyChecking=no postgres@$RESTORE_SERVER "
+      pg_ctlcluster 14 main stop
+      pgbackrest --stanza=\"$PG_BACKREST_STANZA\" --set=\"$BACKUP_ID\" --type=time --target=\"$TARGET_TIME\" --delta restore --log-level-console=info
+      pg_ctlcluster 14 main start
+    "
+.full_restore: &full_copy
+  - |
+    ssh -o StrictHostKeyChecking=no postgres@$RESTORE_SERVER "
+      pg_ctlcluster 14 main stop
+      rm -r /var/lib/postgresql/14/main/*
+      pgbackrest --stanza=\"$PG_BACKREST_STANZA\" --set=\"$BACKUP_ID\" --type=time --target=\"$TARGET_TIME\" restore --log-level-console=info
+      pg_ctlcluster 14 main start
+    " 
+
+
+restore_incr:
+  stage: restore
+  image: ukarpenko/debian-ssh-mc-curl:1.2.0
+  tags:
+    - k8s-runner
+  before_script:
+    - *restore_before_script
+  script:
+    - *increment_copy
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "trigger" && $DOWNLOAD =~ /incr/
+
+restore_full:
+  stage: restore
+  image: ukarpenko/debian-ssh-mc-curl:1.2.0
+  tags:
+    - k8s-runner
+  before_script:
+    - *restore_before_script
+  script:
+    - *full_copy
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "trigger" && $DOWNLOAD =~ /full/

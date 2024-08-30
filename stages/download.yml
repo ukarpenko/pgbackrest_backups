@@ -1,0 +1,60 @@
+stages:
+  - download
+
+variables:
+  PG_BACKREST_STANZA:
+    value: "dev"
+    options:
+      - "dev"
+      - "demo"
+    description: "Укажите название хранилища для бэкапов (main, dev, sonarqube, demo)"
+  TARGET_TIME:
+    value: ""
+    description: "Укажите дату и время восстанавливаемого бэкапа в формате yyyy-mm-dd hh:mm:ss"
+
+.restore_before_script: &restore_before_script
+  - eval $(ssh-agent -s)
+  - echo "$KEY" | tr -d '\r' | ssh-add -
+  - echo "$KEY2" | tr -d '\r' | ssh-add -
+  - mkdir -p ~/.ssh
+  - chmod 700 ~/.ssh
+
+.download_backup_tar: &download_backup_tar
+  - TAR_NAME=`date -d "${TARGET_TIME}" '+%Y-%m-%d'`
+  - echo "TAR_NAME = $TAR_NAME"
+  - mc alias set minio ${MINIO_API_URL} ${MINIO_ADMIN_USERNAME} ${MINIO_ADMIN_PASSWORD}
+  - DOWNLOAD=`mc find minio/backups/${PG_BACKREST_STANZA} --name="*$TAR_NAME.tar"`
+  - echo "DOWNLOAD = $DOWNLOAD"
+  - mc cp $DOWNLOAD ./
+  - DOWNLOAD=$(basename $DOWNLOAD)
+  - echo "DOWNLOAD = $DOWNLOAD"
+  - scp -o StrictHostKeyChecking=no $DOWNLOAD pgbackrest@$PGBACKREST_SERVER:/var/lib/pgbackrest/backup/${PG_BACKREST_STANZA}/
+  - | 
+    REMOTE_CMD=$(cat << EOF
+      tar -xvf /var/lib/pgbackrest/backup/$PG_BACKREST_STANZA/$DOWNLOAD -C /var/lib/pgbackrest/backup/$PG_BACKREST_STANZA/
+    EOF
+    )
+  - ssh -o StrictHostKeyChecking=no pgbackrest@$PGBACKREST_SERVER "$REMOTE_CMD"
+  - BACKUP_ID=$(ssh -o StrictHostKeyChecking=no pgbackrest@$PGBACKREST_SERVER "PG_BACKREST_STANZA='${PG_BACKREST_STANZA}' DOWNLOAD='${DOWNLOAD}' bash -c 'tar -xvf /var/lib/pgbackrest/backup/\${PG_BACKREST_STANZA}/\${DOWNLOAD} | head -1 | cut -f1 -d\"/\"'")
+  - echo "BACKUP_ID = $BACKUP_ID"
+  - curl --request POST --form "token=${TRIGGER_TOKEN}" --form "ref=main" --form "variables[DOWNLOAD]=${DOWNLOAD}" --form variables[RESTORE_SERVER]="${RESTORE_SERVER}" --form variables[PG_BACKREST_STANZA]="${PG_BACKREST_STANZA}" --form variables[BACKUP_ID]="${BACKUP_ID}" --form variables[TARGET_TIME]="${TARGET_TIME}" "${CI_SERVER_URL}/api/v4/projects/${CI_PROJECT_ID}/trigger/pipeline"
+
+download_backup:
+  stage: download
+  image: ukarpenko/debian-ssh-mc-curl:1.2.0
+  tags:
+    - k8s-runner
+  before_script:
+    - *restore_before_script
+  script:
+    - *download_backup_tar
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "web" && $PG_BACKREST_STANZA == "dev" 
+      variables:
+        RESTORE_SERVER: "$DEV_HOST"
+      when: manual
+    - if: $CI_PIPELINE_SOURCE == "web" && $PG_BACKREST_STANZA == "demo" 
+      variables:
+        RESTORE_SERVER: "$DEMO_HOST"
+      when: manual
+

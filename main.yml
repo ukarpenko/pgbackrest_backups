@@ -1,0 +1,34 @@
+include:
+  - project: "backup"
+    ref: "main"
+    file: "stages/backup.yml"
+  - project: "backup"
+    ref: "main"
+    file: "stages/send.yml"
+  - project: "backup"
+    ref: "main"
+    file: "stages/cleanup.yml"
+  - project: "backup"
+    ref: "main"
+    file: "stages/download.yml"    
+  - project: "backup"
+    ref: "main"
+    file: "stages/restore.yml"
+
+
+stages:
+  - backup
+  - send
+  - cleanup
+  - download
+  - trigger
+  - restore
+
+before_script:
+  - apk add openssh-client
+  - eval $(ssh-agent -s)
+  - echo "$KEY" | tr -d '\r' | ssh-add -
+  - echo "$KEY2" | tr -d '\r' | ssh-add -
+  - mkdir -p ~/.ssh
+  - chmod 700 ~/.ssh
+
