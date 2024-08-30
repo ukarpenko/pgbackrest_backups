@@ -3,17 +3,17 @@
 
 This project features a CI/CD pipeline designed to automate the management of PostgreSQL database backups using the pgBackRest utility. The pipeline performs the following key tasks:
 
-    1. Backup Creation: The pipeline automates the process of creating PostgreSQL database backups using pgBackRest, ensuring reliable and efficient backup procedures.
+1. Backup Creation: The pipeline automates the process of creating PostgreSQL database backups using pgBackRest, ensuring reliable and efficient backup procedures.
 
-    2. Backup Storage: After creation, the backups are automatically uploaded to MinIO object storage. This provides secure and scalable storage for the backup data.
+2. Backup Storage: After creation, the backups are automatically uploaded to MinIO object storage. This provides secure and scalable storage for the backup data.
 
-    3. Old Backup Cleanup: The pipeline includes a process for automatically cleaning up backups older than 14 days. This helps manage storage space and prevents the accumulation of outdated data.
+3. Old Backup Cleanup: The pipeline includes a process for automatically cleaning up backups older than 14 days. This helps manage storage space and prevents the accumulation of outdated data.
 
-    4. Backup Restoration: The pipeline supports restoring data from backups, with flexibility based on the target server and the specific backup. Point-in-Time Recovery is also supported, allowing data to be restored to a precise moment in time.
+4. Backup Restoration: The pipeline supports restoring data from backups, with flexibility based on the target server and the specific backup. Point-in-Time Recovery is also supported, allowing data to be restored to a precise moment in time.
 
-    Restoration Parameters:
-        PG_BACKREST_STANZA: The stanza name for pgBackRest, set manually through the GitLab web interface when initiating the restoration process.
-        TARGET_TIME: The target time for Point-in-Time Recovery, set manually through the GitLab web interface when initiating the restoration process.
+Restoration Parameters:
+    PG_BACKREST_STANZA: The stanza name for pgBackRest, set manually through the GitLab web interface when initiating the restoration process.
+    TARGET_TIME: The target time for Point-in-Time Recovery, set manually through the GitLab web interface when initiating the restoration process.
 
 The pipeline is fully integrated with GitLab CI/CD, providing automation for the creation, storage, and restoration of backups, thereby simplifying the administration and maintenance of PostgreSQL databases.
 
