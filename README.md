@@ -1,5 +1,5 @@
 
-## Описание проекта
+## Project Description
 
 This project features a CI/CD pipeline designed to automate the management of PostgreSQL database backups using the pgBackRest utility. The pipeline performs the following key tasks:
 
