@@ -7,10 +7,10 @@ variables:
     options:
       - "dev"
       - "demo"
-    description: "Укажите название хранилища для бэкапов (main, dev, sonarqube, demo)"
+    description: "Specify the name of the backup storage (main, dev, sonarqube, demo)"
   TARGET_TIME:
     value: ""
-    description: "Укажите дату и время восстанавливаемого бэкапа в формате yyyy-mm-dd hh:mm:ss"
+    description: "Specify the date and time for the backup to be restored to in the format yyyy-mm-dd hh:mm:ss"
 
 .restore_before_script: &restore_before_script
   - eval $(ssh-agent -s)
