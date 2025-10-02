@@ -1,0 +1,29 @@
+stages:
+  - cleanup
+
+cleanup_pgbackrest:
+  stage: cleanup
+  image: alpine:latest
+  tags:
+    - k8s-runner
+  script:
+    - | 
+      REMOTE_CMD=$(cat << 'EOF'
+        find /var/lib/pgbackrest/backup/${PG_BACKREST_STANZA} -name "*.tar" -type f -mtime +14 -exec rm -f {} \;
+      EOF
+      )
+    - ssh -o StrictHostKeyChecking=no pgbackrest@$PGBACKREST_SERVER "PG_BACKREST_STANZA=${PG_BACKREST_STANZA} bash -c '$REMOTE_CMD'"
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+
+
+cleanup_s3:
+  stage: cleanup
+  image: ukarpenko/debian-ssh-mc-curl:1.2.0
+  tags:
+    - k8s-runner
+  script:
+    - mc alias set minio ${MINIO_API_URL} ${MINIO_ADMIN_USERNAME} ${MINIO_ADMIN_PASSWORD}
+    - mc find minio/backups/${PG_BACKREST_STANZA} --name "*.tar" --older-than 14d --exec "mc rm {}"
+  rules:
+  - if: $CI_PIPELINE_SOURCE == "schedule"
