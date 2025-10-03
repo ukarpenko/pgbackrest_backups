@@ -1,7 +1,7 @@
 
 ## Project Description
 
-This project features a CI/CD pipeline designed to automate the management of PostgreSQL database backups using the pgBackRest utility. The pipeline performs the following key tasks:
+This project features a Gitlab CI/CD pipeline designed to automate the management of PostgreSQL database backups using the pgBackRest utility. The pipeline performs the following key tasks:
 
 1. Backup Creation: The pipeline automates the process of creating PostgreSQL database backups using pgBackRest, ensuring reliable and efficient backup procedures.
 
